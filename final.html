@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Supply Chain Dashboard - Table Left, Chart Right</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .main-container {
+      display: flex;
+      flex-direction: row; /* horizontal side by side */
+      gap: 20px;
+      height: 100vh;
+    }
+
+    .left-panel, .right-panel {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      overflow: auto;
+    }
+
+    .left-panel {
+      flex: 1;
+    }
+
+    .right-panel {
+      flex: 1;
+    }
+
+    /* Table Styles */
+    .styled-table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 1em;
+      min-width: 600px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .styled-table thead tr {
+      background-color: #34495e;
+      color: #ffffff;
+      text-align: center;
+    }
+    .styled-table th,
+    .styled-table td {
+      padding: 12px 15px;
+      text-align: center;
+    }
+    .styled-table tbody tr {
+      border-bottom: 1px solid #dddddd;
+    }
+    .styled-table tbody tr:nth-of-type(even) {
+      background-color: #f3f3f3;
+    }
+    .styled-table tbody tr:hover {
+      background-color: #dcdde1;
+      cursor: pointer;
+    }
+    .header {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: #34495e;
+      margin-bottom: 10px;
+    }
+    .search-container {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .search-input {
+      padding: 8px;
+      width: 250px;
+      border: 1px solid #34495e;
+      border-radius: 5px;
+      outline: none;
+    }
+    .summary {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 16px;
+      color: #34495e;
+    }
+
+    /* Chart Styles */
+    .line {
+      fill: none;
+      stroke-width: 2.5px;
+      transition: all 0.3s ease;
+    }
+    .line:hover {
+      stroke-width: 4px;
+    }
+    .axis path,
+    .axis line {
+      stroke: #333;
+    }
+    .legend {
+      font-size: 14px;
+    }
+    .tooltip {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      padding: 5px;
+      border-radius: 5px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1 style="text-align:center; color:#34495e;">Supply Chain Dashboard</h1>
+
+<div class="main-container">
+  
+  <!-- LEFT: Table -->
+  <div class="left-panel">
+    <h2 class="header">Enhanced Supply Chain Data</h2>
+    <div class="search-container">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search by date (YYYY-MM-DD)">
+    </div>
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Estimated Cost</th>
+          <th>Raw Material</th>
+          <th>Workmanship</th>
+          <th>Yearly Storage</th>
+          <th>Actual Cost</th>
+          <th>Sold Price</th>
+          <th>Margin of Profit</th>
+        </tr>
+      </thead>
+      <tbody id="dataBody">
+        <!-- Dynamic rows will be inserted here -->
+      </tbody>
+    </table>
+    <div class="summary" id="summary">
+      <!-- Summary Info -->
+    </div>
+  </div>
+
+  <!-- RIGHT: Chart -->
+  <div class="right-panel">
+    <h2>Multiline Chart for Supply Chain Data</h2>
+    <div id="chart"></div>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+
+</div>
+
+<!-- Table Script -->
+<script>
+fetch('https://raw.githubusercontent.com/rparihar5/Data-Visualization/main/data_sample.csv')
+.then(response => response.text())
+.then(data => {
+    const rows = data.split('\n');
+    rows.shift();
+    const tableBody = document.getElementById('dataBody');
+    let totalProfit = 0;
+    let totalEntries = 0;
+
+    rows.forEach(row => {
+        const columns = row.split(',');
+        const date = new Date(columns[0]);
+        const formattedDate = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+        const estimatedCost = parseFloat(columns[1]);
+        const rawMaterialCost = parseFloat(columns[2]);
+        const workmanshipCost = parseFloat(columns[3]);
+        const yearlyStorageCost = parseFloat(columns[4]);
+
+        if (!isNaN(estimatedCost) && !isNaN(rawMaterialCost) && !isNaN(workmanshipCost) && !isNaN(yearlyStorageCost)) {
+            const actualCost = rawMaterialCost + workmanshipCost + yearlyStorageCost;
+            const soldPrice = estimatedCost * 1.1;
+            const marginOfProfit = soldPrice - actualCost;
+
+            totalProfit += marginOfProfit;
+            totalEntries++;
+
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>${formattedDate}</td>
+                <td>${estimatedCost.toFixed(2)}</td>
+                <td>${rawMaterialCost.toFixed(2)}</td>
+                <td>${workmanshipCost.toFixed(2)}</td>
+                <td>${yearlyStorageCost.toFixed(2)}</td>
+                <td>${actualCost.toFixed(2)}</td>
+                <td>${soldPrice.toFixed(2)}</td>
+                <td>${marginOfProfit.toFixed(2)}</td>
+            `;
+            tableBody.appendChild(newRow);
+        }
+    });
+
+    document.getElementById('summary').innerText = `Total Entries: ${totalEntries} | Total Profit: ₹${totalProfit.toFixed(2)}`;
+})
+.catch(error => console.error('Error fetching data:', error));
+
+document.getElementById('searchInput').addEventListener('input', function () {
+    const filter = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#dataBody tr');
+    rows.forEach(row => {
+        const dateCell = row.querySelector('td');
+        if (dateCell) {
+            const dateText = dateCell.textContent.toLowerCase();
+            row.style.display = dateText.includes(filter) ? '' : 'none';
+        }
+    });
+});
+</script>
+
+<!-- Chart Script -->
+<script>
+const svg = d3.select("#chart")
+    .append("svg")
+    .attr("width", 600)
+    .attr("height", 500);
+
+const margin = { top: 50, right: 150, bottom: 100, left: 80 };
+const width = 600 - margin.left - margin.right;
+const height = 500 - margin.top - margin.bottom;
+
+const chart = svg.append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+const parseDate = d3.timeParse("%m/%d/%y");
+const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+const tooltip = d3.select("#tooltip");
+
+d3.csv("https://raw.githubusercontent.com/rparihar5/Data-Visualization/main/data_sample.csv").then(data => {
+    data.forEach(d => {
+        d.date = parseDate(d.date);
+        d.EstimatedCost = +d.EstimatedCost;
+        d.RawMaterial = +d.RawMaterial;
+        d.Workmanship = +d.Workmanship;
+        d.StorageCost = +d.StorageCost;
+        d.ActualCost = d.RawMaterial + d.Workmanship + d.StorageCost;
+        d.SoldPrice = d.EstimatedCost * 1.1;
+        d.MarginOfProfit = d.SoldPrice - d.ActualCost;
+    });
+
+    const x = d3.scaleTime()
+        .domain(d3.extent(data, d => d.date))
+        .range([0, width]);
+
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(data, d => Math.max(d.EstimatedCost, d.ActualCost, d.SoldPrice, d.MarginOfProfit))])
+        .range([height, 0]);
+
+    chart.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x));
+
+    chart.append("g").call(d3.axisLeft(y));
+
+    const lines = [
+        { key: "EstimatedCost", label: "Estimated Cost" },
+        { key: "ActualCost", label: "Actual Cost" },
+        { key: "SoldPrice", label: "Sold Price" },
+        { key: "MarginOfProfit", label: "Margin of Profit" }
+    ];
+
+    color.domain(lines.map(line => line.key));
+
+    lines.forEach((line, i) => {
+        const lineGenerator = d3.line()
+            .x(d => x(d.date))
+            .y(d => y(d[line.key]));
+
+        chart.append("path")
+            .datum(data)
+            .attr("d", lineGenerator)
+            .attr("class", "line")
+            .attr("stroke", color(line.key))
+            .attr("stroke-width", 2)
+            .attr("fill", "none");
+    });
+
+    const legend = svg.append("g")
+        .attr("transform", `translate(${width + margin.left + 10}, ${margin.top})`);
+
+    lines.forEach((line, i) => {
+        const legendRow = legend.append("g")
+            .attr("transform", `translate(0, ${i * 25})`);
+
+        legendRow.append("rect")
+            .attr("width", 20)
+            .attr("height", 20)
+            .attr("fill", color(line.key));
+
+        legendRow.append("text")
+            .attr("x", 30)
+            .attr("y", 15)
+            .attr("class", "legend")
+            .text(line.label);
+    });
+
+}).catch(error => console.error("Error loading CSV:", error));
+</script>
+
+</body>
+</html>
