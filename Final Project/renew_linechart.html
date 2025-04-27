@@ -1,241 +1,206 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Line Chart</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <style>
-        
-        .line {
-            fill: none;
-            stroke-width: 2px;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Renewable Energy Consumption Trends</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
 
-        .dot {
-            fill: #fff;
-            stroke: steelblue;
-            stroke-width: 1.5px;
-        }
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(to right, #d7d2cc, #304352);
+      font-family: 'Poppins', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
 
-        .legend {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-        }
+    .header {
+      font-size: 30px;
+      margin-top: 20px;
+      font-weight: 700;
+      color: #fff;
+      text-align: center;
+    }
 
-        .legend rect {
-            stroke-width: 1;
-        }
+    .paragraph {
+      font-size: 18px;
+      color: #e0e0e0;
+      margin-top: 10px;
+      margin-bottom: 25px;
+      text-align: center;
+    }
 
-        .legend text {
-            fill: #000;
-            font-weight: bold;
-        }
+    .dropdown-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 25px;
+      gap: 12px;
+    }
 
-        .tooltip {
-            position: absolute;
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 6px 8px;
-            pointer-events: none;
-            opacity: 0;
-        }
+    #file-select {
+      padding: 8px 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
 
-        .header {
-            text-align: center;
-            font-family: Arial, sans-serif;
-            font-size: 24px;
-            color: #333;
-            transition: color 0.3s ease;
-            cursor: pointer;
-            font-weight: 600;
-            background-image: linear-gradient(to right, #553c9a 45%, #ee4b2b);
-            color: transparent;
-            background-clip: text;
-            -webkit-background-clip: text;
-        }
+    #go-button {
+      padding: 8px 16px;
+      background: #00b894;
+      border: none;
+      color: #fff;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
 
-        .header:hover {
-            color: #a16f17c7; 
-        }
+    #go-button:hover {
+      background: #009e7a;
+    }
 
-        .paragraph {
-            text-align: center;
-            font-family: Arial, sans-serif;
-            font-size: 16px;
-            color: #555;
-            line-height: 1.6;
-            font-weight: 600;
-            background-image: linear-gradient(to right, #553c9a 45%, #ee4b2b);
-            color: transparent;
-            background-clip: text;
-            -webkit-background-clip: text;
-            margin-bottom: 5px;
-        }
-        .paragraph:hover {
-            color: #333;
-        }
-        #file-select {
-            margin-left: 1100px;
-            margin-bottom: 30px;
-        }
-    </style>
+    #chart {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
+      margin-bottom: 30px;
+    }
+
+    .tooltip {
+      position: absolute;
+      background: rgba(0,0,0,0.75);
+      color: #fff;
+      padding: 8px;
+      font-size: 12px;
+      border-radius: 6px;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .line {
+      fill: none;
+      stroke-width: 2.5px;
+    }
+
+    .dot {
+      fill: white;
+      stroke: black;
+      stroke-width: 1px;
+    }
+  </style>
 </head>
+
 <body>
-    
-    <div class="header" style="margin-bottom: 10px;">Share of primary energy consumption from Renewable Sources</div>
-    <div class="paragraph">Energy consumption from Renewable Sources in "%"</div>
-    
-    <div>
-            <select id="file-select">
-                <option value="Renew_linechart.html">LineChart of Renewable consumption of few countries</option>
-                <option value="Renewable_Energy.html">Renewable consumption</option>  
-                <option value="Map_visual_percapita_Engy_Index_2.html">per capita consumption</option>
-                <option value="Per_capita_energy_Linechart.html">LineChart of per capita consumption of few countries</option>   
-                <option value="Map_visual_primary_Engy_Index.html">Annual consumption</option>
-                <option value="Primary_Energy_Linechart.html">LineChart of Annual consumption of few countries</option>         
-                <option value="Fossil_fuel_stack_area.html">Fossil fuel Consumption</option>   
-            </select>
-    </div>
-    
-    <div id="chart-container" style="position: relative;">
-        <svg id="chart"></svg>
-        <div class="tooltip"></div>
-    </div>
 
-    <script>
+  <div class="header">Share of Energy Consumption from Renewables</div>
+  <div class="paragraph">Expressed as % of Primary Energy Use</div>
 
-        document.getElementById('file-select').addEventListener('change', function() {
-                    var selectedFile = this.value;
-                    window.location.href = selectedFile;
-                });
-        d3.csv("https://raw.githubusercontent.com/rparihar5/Data-Visualization/refs/heads/main/Final%20Project/datasets/renewable-share-energy.csv").then(function(data) {
-            const filteredData = data.filter(d => d.Entity === "China" || d.Entity === "United States" || d.Entity === "India" || d.Entity === "Brazil" || d.Entity === "United Kingdom" || d.Entity === "South Africa");
+  <div class="dropdown-container">
+    <select id="file-select">
+      <option value="">-- Select Visualization --</option>
+      <option value="Renew_linechart.html">LineChart: Renewable (%)</option>
+      <option value="Renewable_Energy.html">Map: Renewable (%)</option>
+      <option value="Map_visual_percapita_Engy_Index_2.html">Map: Per Capita</option>
+      <option value="Per_capita_energy_Linechart.html">LineChart: Per Capita</option>
+      <option value="Map_visual_primary_Engy_Index.html">Map: Annual</option>
+      <option value="Primary_Energy_Linechart.html">LineChart: Annual</option>
+      <option value="Fossil_fuel_stack_area.html">Fossil Fuels</option>
+    </select>
+    <button id="go-button">Go</button>
+  </div>
 
-            
-            filteredData.forEach(function(d) {
-                d.Year = +d.Year;
-                d.Primary_energy_consumption_TWh = +d['Renewables (% equivalent primary energy)'];
-            });
+  <div id="chart-container" style="position: relative;">
+    <svg id="chart"></svg>
+    <div class="tooltip"></div>
+  </div>
 
-            
-            drawLineChart(filteredData);
-        });
+  <script>
+    document.getElementById('go-button').addEventListener('click', function() {
+      const selectedFile = document.getElementById('file-select').value;
+      if (selectedFile) {
+        window.location.href = selectedFile;
+      } else {
+        alert('Please select a visualization!');
+      }
+    });
 
-        function drawLineChart(data) {
-            
-            const width = 800;
-            const height = 400;
-            const margin = { top: 20, right: 20, bottom: 50, left: 350 };
+    d3.csv("https://raw.githubusercontent.com/rparihar5/Data-Visualization/main/Final%20Project/datasets/renewable-share-energy.csv").then(function(data) {
+      const countries = ["China", "United States", "India", "Brazil", "United Kingdom", "South Africa"];
+      const filteredData = data.filter(d => countries.includes(d.Entity));
 
-            
-            const svg = d3.select("#chart")
-                .attr("width", width + margin.left + margin.right+120)
-                .attr("height", height + margin.top + margin.bottom)
-                .append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+      filteredData.forEach(d => {
+        d.Year = +d.Year;
+        d.RenewableShare = +d['Renewables (% equivalent primary energy)'];
+      });
 
-            
-            const x = d3.scaleLinear()
-                .domain(d3.extent(data, d => d.Year))
-                .range([0, width]);
+      drawLineChart(filteredData, countries);
+    });
 
-            const y = d3.scaleLinear()
-                .domain([0, d3.max(data, d => d.Primary_energy_consumption_TWh)])
-                .range([height, 0]);
+    function drawLineChart(data, countries) {
+      const width = 800, height = 400, margin = { top: 30, right: 30, bottom: 50, left: 70 };
 
-            
-            const line = d3.line()
-                .x(d => x(d.Year))
-                .y(d => y(d.Primary_energy_consumption_TWh));
+      const svg = d3.select("#chart")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
 
-            
-            const countries = ["China", "United States", "India", "Brazil", "United Kingdom", "South Africa"];
-            countries.forEach(country => {
-                const countryData = data.filter(d => d.Entity === country);
-                
-                // Draw line
-                svg.append("path")
-                    .datum(countryData)
-                    .attr("class", "line")
-                    .attr("d", line)
-                    .style("stroke", () => {
-                        
-                        return d3.schemeCategory10[countries.indexOf(country)];
-                    });
-                
-                // Draw dots
-                svg.selectAll(".dot-" + country)
-                    .data(countryData)
-                    .enter().append("circle")
-                    .attr("class", "dot")
-                    .attr("cx", d => x(d.Year))
-                    .attr("cy", d => y(d.Primary_energy_consumption_TWh))
-                    .attr("r", 3)
-                    .style("fill", () => {
-                        return d3.schemeCategory10[countries.indexOf(country)];
-                    })
-                    .on("mouseover", function(event, d) {
-                        d3.select(this).attr("r", 5); 
-                        const mouseX = d3.pointer(event)[0];
-                        const mouseY = d3.pointer(event)[1];
-                        const year = Math.round(x.invert(mouseX));
-                        const value = d.Primary_energy_consumption_TWh;
-                        d3.select(".tooltip")
-                            .style("opacity", 0.9)
-                            .html(country + "<br>" +"Year: " + year + "<br>" + "Consumption: " + value.toFixed(2) + " %")
-                            .style("left", (event.pageX + 10) + "px")
-                            .style("top", (event.pageY - 20) + "px");
-                    })
-                    .on("mouseout", function(event, d) {
-                        d3.select(this).attr("r", 3); 
-                        d3.select(".tooltip").style("opacity", 0);
-                    });
-            });
+      const x = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.Year))
+        .range([0, width]);
 
-            countries.forEach(country => {
-                const countryData = data.filter(d => d.Entity === country);
-                const lastPoint = countryData[countryData.length - 1]; 
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d.RenewableShare)])
+        .range([height, 0]);
 
-                const lineColor = d3.schemeCategory10[countries.indexOf(country)]; // Get the color
+      const line = d3.line()
+        .x(d => x(d.Year))
+        .y(d => y(d.RenewableShare));
 
-                svg.append("text")
-                    .attr("x", x(lastPoint.Year) + 5) // Adjusting `+5` to add a small gap after the chart
-                    .attr("y", y(lastPoint.Primary_energy_consumption_TWh))
-                    .attr("dy", "0.35em") // Vertically centered
-                    .attr("font-family", "Arial, sans-serif")
-                    .attr("font-size", "12px")
-                    .attr("fill", lineColor) // Using the same color as the line
-                    .text(country);
-            });
+      const color = d3.scaleOrdinal(d3.schemeSet2);
 
-            svg.append("g")
-                .attr("transform", "translate(0," + height + ")")
-                .call(d3.axisBottom(x).tickFormat(d3.format("d")));
+      countries.forEach(country => {
+        const countryData = data.filter(d => d.Entity === country);
 
-            svg.append("g")
-                .call(d3.axisLeft(y));
+        svg.append("path")
+          .datum(countryData)
+          .attr("class", "line")
+          .attr("d", line)
+          .attr("stroke", color(country));
 
-            
-            const legend = svg.append("g")
-                .attr("class", "legend")
-                .attr("transform", "translate(" + (width + margin.right) + "," + (margin.top + 10) + ")"); // Adjusted translation
+        svg.selectAll(".dot-" + country)
+          .data(countryData)
+          .enter().append("circle")
+          .attr("class", "dot")
+          .attr("cx", d => x(d.Year))
+          .attr("cy", d => y(d.RenewableShare))
+          .attr("r", 3)
+          .attr("fill", color(country))
+          .on("mouseover", function(event, d) {
+            d3.select(this).transition().duration(100).attr("r", 6);
+            d3.select(".tooltip")
+              .style("opacity", 1)
+              .html(`<strong>${d.Entity}</strong><br>Year: ${d.Year}<br>${d.RenewableShare.toFixed(2)}%`)
+              .style("left", (event.pageX + 10) + "px")
+              .style("top", (event.pageY - 20) + "px");
+          })
+          .on("mouseout", function() {
+            d3.select(this).transition().duration(100).attr("r", 3);
+            d3.select(".tooltip").style("opacity", 0);
+          });
+      });
 
-            countries.forEach((country, i) => {
-                legend.append("rect")
-                    .attr("x", 0)
-                    .attr("y", i * 20)
-                    .attr("width", 10)
-                    .attr("height", 10)
-                    .attr("fill", d3.schemeCategory10[i]);
+      svg.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x).tickFormat(d3.format("d")));
 
-                legend.append("text")
-                    .attr("x", 20)
-                    .attr("y", i * 20 + 8)
-                    .text(country);
-            });
-        }
-    </script>
+      svg.append("g")
+        .call(d3.axisLeft(y));
+    }
+  </script>
+
 </body>
 </html>
